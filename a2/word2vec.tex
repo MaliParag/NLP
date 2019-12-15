@@ -3,6 +3,7 @@
 \setlength\parindent{0pt}
 \usepackage{amsmath}
 \usepackage{bm}
+\usepackage{enumitem}
 
 \begin{document}
 	
@@ -22,19 +23,71 @@
 	In word2vec, the conditional probability distribution is given by taking vector dot-products and applying the softmax function:
 	
 	\begin{equation}
-		P(O=o|C=c) = \frac{exp(\bm{u}_o^\top \bm{v}_c)}{\Sigma_{w \in {Vocab}} exp(\bm{u}_w^\top)\bm{v}_c}	
+		P(O=o|C=c) = \frac{exp(\bm{u}_o^\top \bm{v}_c)}{\sum\limits_{w \in {Vocab}} exp(\bm{u}_w^\top \bm{v}_c)}	
 		\label{eq:softmax}
 	\end{equation}
 	
-	Here, $\bm{u}_o$ is the `outside' vector representing outside word $o$, and $v_c$ is the center `center' vector representing center word c. To contain these parameters, we have two matrices, $\bm{U}$ and $\bm{V}$. The columns of $U$ are all the `outside' vectors $u_w$. The columns of $\bm{V}$ are all the `center' vectors $v_w$. Both $\bm{U}$ and $\bm{V}$ contain a vector for every $w \in Vocabulary$.\footnote{Assume that every word in our vocabulary is matched to an integer number $k$. $\bm{u}_k$ is both the $k^{th}$ column of $\bm{U}$ and `outside' word vector for the word indexed by $k$. $\bm{v}_k$ is both the $k_{th}$ column of $\bm{V}$ and the `center' word vector for the word indexed by k. In order to simplify notation we shall interchangeably use $k$ to refer to the word and the index-of-the-word.}
+	Here, $\bm{u}_o$ is the `outside' vector representing outside word $o$, and $v_c$ is the center `center' vector representing center word c. To contain these parameters, we have two matrices, $\bm{U}$ and $\bm{V}$. The columns of $\bm{U}$ are all the `outside' vectors $u_w$. The columns of $\bm{V}$ are all the `center' vectors $v_w$. Both $\bm{U}$ and $\bm{V}$ contain a vector for every $w \in Vocabulary$.\footnote{Assume that every word in our vocabulary is matched to an integer number $k$. $\bm{u}_k$ is both the $k^{th}$ column of $\bm{U}$ and `outside' word vector for the word indexed by $k$. $\bm{v}_k$ is both the $k_{th}$ column of $\bm{V}$ and the `center' word vector for the word indexed by k. In order to simplify notation we shall interchangeably use $k$ to refer to the word and the index-of-the-word.}
 	
 	Recall that, for a single pair of words $c$ and $o$, the loss is given by:
 	
 	\begin{equation}
 		\bm{J}_{naive-softmax}\bm{(v_c, o, U)} = -\log{P(O=o|C=c)}.
+		\label{eq:naive-softmax}
 	\end{equation}
 	
-	Another way to view this loss is the cross-entropy\footnote{The Cross Entropy Loss between the true (discrete) probability distribution $p$ and another probability distribution $q$ is $-Sigma_{i} p_i \log{(q_i)}$.} between the true distribution $\bm{y}$ and the predicted distribution $\hat{\bm{y}}$. Here, both $\bm{y}$ and $\bm{\hat{y}}$ are the vectors with length equal to the number of words in the vocabulary. Furthermore, the $k^{th}$ entry in these vectors indicates the conditional probability of the $k^{th}$ word being an `outside word' for the given $c$. The true empirical distribution $\bm{y}$ is a one-hot vector with a 1 for the true outside word $o$, and 0 everywhere else. The predicted distribution $\hat{\bm{y}}$ is the probability distribution $P(O|C=c)$ given by our model in the equation \ref{eq:softmax}. 
+	Another way to view this loss is the cross-entropy\footnote{The Cross Entropy Loss between the true (discrete) probability distribution $p$ and another probability distribution $q$ is $-\Sigma_{i} p_i \log{(q_i)}$.} between the true distribution $\bm{y}$ and the predicted distribution $\hat{\bm{y}}$. Here, both $\bm{y}$ and $\bm{\hat{y}}$ are the vectors with length equal to the number of words in the vocabulary. Furthermore, the $k^{th}$ entry in these vectors indicates the conditional probability of the $k^{th}$ word being an `outside word' for the given $c$. The true empirical distribution $\bm{y}$ is a one-hot vector with a 1 for the true outside word $o$, and 0 everywhere else. The predicted distribution $\hat{\bm{y}}$ is the probability distribution $P(O|C=c)$ given by our model in the Equation \ref{eq:softmax}. 
+	
+	\begin{enumerate}[label=(\alph*)]
+		\item Naive softmax loss in the Equation \ref{eq:naive-softmax} is the same as the cross-entropy loss between $\bm{y}$ and $\hat{\bm{y}}$; i.e., 
+		
+		\begin{equation}
+			- \sum\limits_{w \in Vocab} y_w\log{\hat{y}_w} = - log(\hat{y_{o}})
+		\end{equation}
+		
+		
+		Reason: For two words $c$ and $o$, $y_w=1$ when $w=o$, $y_w=0$ otherwise. 
+		
+		
+		\item Partial derivative of $\bm{J}_{naive-softmax}\bm{(v_c, o, U)}=J$ with respect to $\bm(v_c)$. \footnote{For more details visit: https://stats.stackexchange.com/questions/253244/gradients-for-skipgram-word2vec}
+		
+		Let us rewrite $J$ as:
+		
+		\begin{equation}
+		\begin{split}
+			J &= -\log{\hat{y_o}} = -\log( \frac{exp(\bm{u}_o^\top \bm{v}_c)}{\sum\limits_{w \in {Vocab}} exp(\bm{u}_w^\top \bm{v}_c)})\\
+			&= -[\log(exp(\bm{u}_o^\top \bm{v}_c))-\log({\sum\limits_{w \in {Vocab}} exp(\bm{u}_w^\top\bm{v}_c)})]\\
+			&= -\bm{u}_o^\top \bm{v}_c + \log({\sum\limits_{w \in {Vocab}} exp(\bm{u}_w^\top \bm{v}_c)})
+		\end{split}
+		\end{equation} 
+		
+		Now, let us find $\frac{\partial J}{\partial \bm{v_c}}$.\footnote{If you are confused about why $\frac{\partial \bm{u}_o^\top \bm{v}_c}{\partial \bm{v_c}} = \bm{u}_o$, please read about numerator layout notation and denominator layout notation. You may start here: https://www.comp.nus.edu.sg/~cs5240/lecture/matrix-differentiation.pdf}
+		
+		\begin{equation}
+			\frac{\partial J}{\partial \bm{v_c}} = - \bm{u}_o + \frac{\sum\limits_{w \in {Vocab}} exp(\bm{u}_w \bm{v}_c).\bm{u}_w}{\sum\limits_{w \in {Vocab}} exp(\bm{u}_w^\top \bm{v}_c)}
+		\end{equation}
+		
+		Re-arranging,
+		
+		\begin{equation}
+			\frac{\partial J}{\partial \bm{v_c}} = - \bm{u}_o + \sum\limits_{w \in {Vocab}}(\frac{exp(\bm{u}_w^\top \bm{v}_c)}{\sum\limits_{x \in {Vocab}} exp(\bm{u}_x^\top \bm{v}_c)}\bm{u}_w)
+		\end{equation}
+		
+		From Equation \ref{eq:softmax},
+		
+		\begin{equation}
+			\frac{\partial J}{\partial \bm{v_c}} = - \bm{u}_o + \sum\limits_{w \in {Vocab}}(\hat{y_w} \bm{u}_w)		
+		\end{equation}
+		
+		Writing in the matrix form,
+		
+		\begin{equation}
+		\begin{split}
+		\frac{\partial J}{\partial \bm{v_c}} &= - Uy + U\hat{y}\\ 
+											 &= U[\hat{y}-y]	
+		\end{split}
+		\end{equation}
+	\end{enumerate}
 	
 	
 	
